@@ -651,8 +651,20 @@ export default function ColorPalettePicker() {
               onClick={() => setMockIndex((mockIndex + 1) % MOCK_SITES.length)}
             />
           </div>
-          <div className="text-center mt-3 text-xs" style={{ color: chrome.textSecondary }}>
-            Example {mockIndex + 1} of {MOCK_SITES.length}: {MOCK_SITES[mockIndex].name}
+          <div className="text-center mt-3 text-xs font-medium" style={{ color: chrome.textSecondary }}>
+            {MOCK_SITES[mockIndex].name}
+          </div>
+          <div className="flex items-center justify-center gap-2 mt-3">
+            {MOCK_SITES.map((site, i) => (
+              <button
+                key={site.label}
+                onClick={() => setMockIndex(i)}
+                aria-label={`Show ${site.name} example`}
+                aria-current={i === mockIndex}
+                className="w-2 h-2 rounded-full transition-colors duration-150"
+                style={{ backgroundColor: i === mockIndex ? chrome.accent : chrome.border }}
+              />
+            ))}
           </div>
         </div>
 
