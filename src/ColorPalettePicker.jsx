@@ -505,19 +505,19 @@ const MOCK_SITES = [
 
 export default function ColorPalettePicker() {
   const [typeKey, setTypeKey] = useState("monochromatic");
-  const [hueIndexByType, setHueIndexByType] = useState({
-    monochromatic: 0,
-    analogous: 0,
-    complementary: 0,
-    splitComplementary: 0,
-    triadic: 0,
+  const [hueByType, setHueByType] = useState({
+    monochromatic: 216,
+    analogous: 205,
+    complementary: 216,
+    splitComplementary: 190,
+    triadic: 220,
   });
   const [openDropdown, setOpenDropdown] = useState(null);
   const [appTheme, setAppTheme] = useState("light");
   const [mockIndex, setMockIndex] = useState(0);
 
   const activeType = PALETTE_TYPES.find((t) => t.key === typeKey);
-  const activeHue = activeType.hues[hueIndexByType[typeKey]];
+  const activeHue = hueByType[typeKey];
   const palette = useMemo(() => buildPalette(typeKey, activeHue), [typeKey, activeHue]);
 
   const chrome = useMemo(() => {
@@ -554,7 +554,7 @@ export default function ColorPalettePicker() {
     };
   }, [appTheme, palette]);
 
-  const getPreview = (t) => buildPalette(t.key, t.hues[hueIndexByType[t.key]]);
+  const getPreview = (t) => buildPalette(t.key, hueByType[t.key]);
   const CurrentSite = MOCK_SITES[mockIndex].Component;
 
   return (
@@ -599,24 +599,24 @@ export default function ColorPalettePicker() {
         </div>
 
         {/* Dropdown panel */}
-        <div style={{ maxHeight: openDropdown ? "640px" : "0px", overflow: "hidden", transition: "max-height 300ms ease" }}>
+        <div style={{ maxHeight: openDropdown ? "900px" : "0px", overflow: "hidden", transition: "max-height 300ms ease" }}>
           {openDropdown &&
             (() => {
               const t = PALETTE_TYPES.find((x) => x.key === openDropdown);
+              const sliderPreview = buildPalette(t.key, hueByType[t.key]);
               return (
                 <div className="mt-3 rounded-2xl p-4 sm:p-5" style={{ backgroundColor: chrome.surface, border: `1px solid ${chrome.border}` }}>
                   <div className="text-sm font-semibold mb-3" style={{ color: chrome.text }}>{t.label} palettes</div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {t.hues.map((h, i) => {
                       const p = buildPalette(t.key, h);
-                      const selected = t.key === typeKey && i === hueIndexByType[t.key];
+                      const selected = t.key === typeKey && hueByType[t.key] === h;
                       return (
                         <button
                           key={i}
                           onClick={() => {
                             setTypeKey(t.key);
-                            setHueIndexByType((prev) => ({ ...prev, [t.key]: i }));
-                            setOpenDropdown(null);
+                            setHueByType((prev) => ({ ...prev, [t.key]: h }));
                           }}
                           className="rounded-xl p-3 text-left transition-colors duration-150"
                           style={{
@@ -636,10 +636,79 @@ export default function ColorPalettePicker() {
                       );
                     })}
                   </div>
+
+                  {/* Fine-tune hue slider */}
+                  <div
+                    className="mt-4 pt-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
+                    style={{ borderTop: `1px solid ${chrome.border}` }}
+                  >
+                    <span className="text-sm font-semibold flex-shrink-0" style={{ color: chrome.text }}>
+                      Fine-tune {t.label} hue
+                    </span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="359"
+                      value={hueByType[t.key]}
+                      onChange={(e) => {
+                        setTypeKey(t.key);
+                        setHueByType((prev) => ({ ...prev, [t.key]: Number(e.target.value) }));
+                      }}
+                      className="hue-slider flex-1"
+                      aria-label={`${t.label} base hue, currently ${hueByType[t.key]} degrees`}
+                    />
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span
+                        className="w-5 h-5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: sliderPreview.primary.hex, border: `1px solid ${hexToRgba("#000000", 0.1)}` }}
+                      />
+                      <span className="text-xs font-semibold" style={{ color: chrome.text }}>{sliderPreview.primary.name}</span>
+                      <span className="text-xs font-mono" style={{ color: chrome.textSecondary }}>{hueByType[t.key]}°</span>
+                    </div>
+                  </div>
                 </div>
               );
             })()}
         </div>
+        <style>{`
+          .hue-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 10px;
+            border-radius: 9999px;
+            background: linear-gradient(
+              to right,
+              hsl(0, 70%, 55%), hsl(60, 70%, 55%), hsl(120, 70%, 55%),
+              hsl(180, 70%, 55%), hsl(240, 70%, 55%), hsl(300, 70%, 55%), hsl(360, 70%, 55%)
+            );
+            outline: none;
+          }
+          .hue-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 9999px;
+            background: #FFFFFF;
+            border: 2px solid rgba(0, 0, 0, 0.25);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+          }
+          .hue-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 9999px;
+            background: #FFFFFF;
+            border: 2px solid rgba(0, 0, 0, 0.25);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+          }
+          .hue-slider::-moz-range-track {
+            height: 10px;
+            border-radius: 9999px;
+          }
+        `}</style>
 
         {/* Mock website preview */}
         <div className="mt-10">
