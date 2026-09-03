@@ -7,6 +7,11 @@ import {
   ChevronLeft,
   ChevronRight,
   ShoppingBag,
+  ArrowLeft,
+  RefreshCw,
+  Star,
+  Download,
+  MoreHorizontal,
 } from "lucide-react";
 
 /* ----------------------------------------------------------------
@@ -280,16 +285,20 @@ function BrowserFrame({ chrome, siteLabel, children }) {
         className="flex items-center gap-3 px-4 py-2.5"
         style={{ backgroundColor: chrome.surface, borderBottom: `1px solid ${chrome.border}` }}
       >
-        <div className="flex gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: chrome.border }} />
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: chrome.border }} />
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: chrome.border }} />
+        <div className="flex items-center gap-2.5 flex-shrink-0">
+          <ArrowLeft size={14} style={{ color: chrome.textSecondary }} />
+          <RefreshCw size={13} style={{ color: chrome.textSecondary }} />
         </div>
         <div
-          className="flex-1 rounded-full px-3 py-1 text-xs text-center truncate"
+          className="flex-1 rounded-full px-3 py-1 text-xs text-left truncate"
           style={{ backgroundColor: chrome.bg, color: chrome.textSecondary }}
         >
-          {siteLabel}
+          https://{siteLabel}
+        </div>
+        <Star size={14} className="flex-shrink-0" style={{ color: chrome.textSecondary }} />
+        <div className="flex items-center gap-2.5 flex-shrink-0">
+          <Download size={14} style={{ color: chrome.textSecondary }} />
+          <MoreHorizontal size={14} style={{ color: chrome.textSecondary }} />
         </div>
       </div>
       <div>{children}</div>
