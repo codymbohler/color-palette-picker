@@ -175,7 +175,7 @@ const GENERATORS = {
 };
 
 const PALETTE_TYPES = [
-  { key: "monochromatic", label: "Monochromatic", hues: [216, 158, 275, 8, 42] },
+  { key: "monochromatic", label: "Monochromatic", hues: [216, 158, 275, 42] },
   { key: "analogous", label: "Analogous", hues: [205, 25, 305, 145] },
   { key: "complementary", label: "Complementary", hues: [216, 30, 260, 100] },
   { key: "splitComplementary", label: "Split-Complementary", hues: [190, 340, 55, 250] },
