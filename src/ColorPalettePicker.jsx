@@ -634,6 +634,9 @@ export default function ColorPalettePicker() {
 
         {/* Mock website preview */}
         <div className="mt-10">
+          <div className="text-center text-xs font-medium mb-3" style={{ color: chrome.textSecondary }}>
+            Palette Preview
+          </div>
           <div className="flex items-center justify-center gap-3 sm:gap-5">
             <ArrowButton
               Icon={ChevronLeft}
