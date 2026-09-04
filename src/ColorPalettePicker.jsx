@@ -184,7 +184,7 @@ const PALETTE_TYPES = [
 ];
 
 const ROLE_ORDER = ["primary", "secondary", "accent", "background", "surface", "text"];
-const BREAKDOWN_ROLE_ORDER = ["background", "primary", "secondary", "accent", "surface", "text"];
+const BREAKDOWN_ROLE_ORDER = ["background", "surface", "text", "primary", "secondary", "accent"];
 const ROLE_INFO = {
   primary: { label: "Primary", usage: "main buttons, links and headings" },
   secondary: { label: "Secondary", usage: "secondary buttons and supporting text" },
