@@ -68,7 +68,7 @@ const NAMED_COLORS = [
   ["Snow", "#FFFAFA"], ["Spring Green", "#00FF7F"], ["Steel Blue", "#4682B4"],
   ["Tan", "#D2B48C"], ["Teal", "#008080"], ["Thistle", "#D8BFD8"],
   ["Tomato", "#FF6347"], ["Turquoise", "#40E0D0"], ["Violet", "#EE82EE"],
-  ["Wheat", "#F5DEB3"], ["White", "#FFFFFF"], ["White Smoke", "#F5F5F5"],
+  ["Wheat", "#F5DEB3"], ["White", "#FFFFFF"], ["White Smoke", "#F5F5F5"], ["Wine", "#9E2E53"],
   ["Yellow", "#FFFF00"], ["Yellow Green", "#9ACD32"],
 ].map(([name, hex]) => ({ name, hex }));
 
