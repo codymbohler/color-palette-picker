@@ -515,7 +515,7 @@ export default function ColorPalettePicker() {
     triadic: 220,
   });
   const [openDropdown, setOpenDropdown] = useState(null);
-  const [appTheme, setAppTheme] = useState("light");
+  const [appTheme, setAppTheme] = useState("palette");
   const [mockIndex, setMockIndex] = useState(0);
   const [overrides, setOverrides] = useState({});
 
