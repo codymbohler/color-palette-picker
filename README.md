@@ -6,4 +6,5 @@ using them in a real project.
 
 https://codymbohler.github.io/color-palette-picker/
 
-<img width="1005" height="987" alt="Screenshot 2026-09-03 000345" src="https://github.com/user-attachments/assets/9fe2f670-8eb3-4a99-bdc4-527cfb35ce67" />
+<img width="1018" height="991" alt="Screenshot 2026-09-04 155620" src="https://github.com/user-attachments/assets/fcfd17d6-699e-4ce7-a8c2-b274fd17fb51" />
+
