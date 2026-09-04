@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Sun,
   Moon,
@@ -12,6 +12,7 @@ import {
   Star,
   Download,
   MoreHorizontal,
+  Pencil,
 } from "lucide-react";
 
 /* ----------------------------------------------------------------
@@ -183,6 +184,7 @@ const PALETTE_TYPES = [
 ];
 
 const ROLE_ORDER = ["primary", "secondary", "accent", "background", "surface", "text"];
+const BREAKDOWN_ROLE_ORDER = ["background", "primary", "secondary", "accent", "surface", "text"];
 const ROLE_INFO = {
   primary: { label: "Primary", usage: "main buttons, links and headings" },
   secondary: { label: "Secondary", usage: "secondary buttons and supporting text" },
@@ -515,10 +517,25 @@ export default function ColorPalettePicker() {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [appTheme, setAppTheme] = useState("light");
   const [mockIndex, setMockIndex] = useState(0);
+  const [overrides, setOverrides] = useState({});
 
   const activeType = PALETTE_TYPES.find((t) => t.key === typeKey);
   const activeHue = hueByType[typeKey];
-  const palette = useMemo(() => buildPalette(typeKey, activeHue), [typeKey, activeHue]);
+
+  // Manual color edits belong to the current harmony instance — once the
+  // underlying type or hue changes, the old overrides no longer make sense.
+  useEffect(() => {
+    setOverrides({});
+  }, [typeKey, activeHue]);
+
+  const palette = useMemo(() => {
+    const base = buildPalette(typeKey, activeHue);
+    const merged = { ...base };
+    for (const role of Object.keys(overrides)) {
+      merged[role] = { hex: overrides[role], name: nearestColorName(overrides[role]) };
+    }
+    return merged;
+  }, [typeKey, activeHue, overrides]);
 
   const chrome = useMemo(() => {
     if (appTheme === "dark") {
@@ -751,9 +768,9 @@ export default function ColorPalettePicker() {
 
         {/* Palette breakdown */}
         <div className="mt-10">
-          <h2 className="text-lg font-bold mb-4" style={{ color: chrome.text }}>Palette breakdown</h2>
+          <h2 className="text-lg font-bold mb-4" style={{ color: chrome.text }}>Palette Color Adjustment</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {ROLE_ORDER.map((roleKey) => {
+            {BREAKDOWN_ROLE_ORDER.map((roleKey) => {
               const info = ROLE_INFO[roleKey];
               const c = palette[roleKey];
               return (
@@ -763,13 +780,44 @@ export default function ColorPalettePicker() {
                   style={{ backgroundColor: chrome.surface, border: `1px solid ${chrome.border}` }}
                 >
                   <div
-                    className="w-12 h-12 rounded-xl flex-shrink-0"
+                    className="relative w-12 h-12 rounded-xl flex-shrink-0 group transition-transform duration-150 hover:scale-105"
                     style={{ backgroundColor: c.hex, border: `1px solid ${hexToRgba("#000000", 0.08)}` }}
-                  />
+                  >
+                    <input
+                      type="color"
+                      value={c.hex}
+                      onChange={(e) =>
+                        setOverrides((prev) => ({ ...prev, [roleKey]: e.target.value.toUpperCase() }))
+                      }
+                      aria-label={`Change the ${info.label} color`}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div
+                      className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none"
+                      style={{ backgroundColor: chrome.surface, border: `1px solid ${chrome.border}` }}
+                    >
+                      <Pencil size={10} style={{ color: chrome.text }} />
+                    </div>
+                  </div>
                   <div className="min-w-0">
                     <div className="flex items-baseline gap-2 flex-wrap">
                       <span className="font-semibold text-sm" style={{ color: chrome.text }}>{c.name}</span>
                       <span className="font-mono text-xs" style={{ color: chrome.textSecondary }}>{c.hex}</span>
+                      {overrides[roleKey] && (
+                        <button
+                          onClick={() =>
+                            setOverrides((prev) => {
+                              const next = { ...prev };
+                              delete next[roleKey];
+                              return next;
+                            })
+                          }
+                          className="text-xs underline flex-shrink-0"
+                          style={{ color: chrome.textSecondary }}
+                        >
+                          Reset
+                        </button>
+                      )}
                     </div>
                     <div className="text-xs mt-0.5" style={{ color: chrome.textSecondary }}>
                       {info.label}: {info.usage}
