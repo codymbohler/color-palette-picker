@@ -13,6 +13,7 @@ import {
   Download,
   MoreHorizontal,
   Pencil,
+  Upload,
 } from "lucide-react";
 
 /* ----------------------------------------------------------------
@@ -518,6 +519,8 @@ export default function ColorPalettePicker() {
   const [appTheme, setAppTheme] = useState("palette");
   const [mockIndex, setMockIndex] = useState(0);
   const [overrides, setOverrides] = useState({});
+  const [extractedColors, setExtractedColors] = useState([]);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   const activeType = PALETTE_TYPES.find((t) => t.key === typeKey);
   const activeHue = hueByType[typeKey];
@@ -573,6 +576,75 @@ export default function ColorPalettePicker() {
 
   const getPreview = (t) => buildPalette(t.key, hueByType[t.key]);
   const CurrentSite = MOCK_SITES[mockIndex].Component;
+
+  function handleScreenshotUpload(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    setIsExtracting(true);
+    setExtractedColors([]);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        // Downscale before sampling so the pixel loop stays fast and simple
+        // regardless of how large the original screenshot is.
+        const maxDim = 150;
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        const { data } = ctx.getImageData(0, 0, w, h);
+
+        // Frequency binning: snap each pixel to a coarser color grid so
+        // near-identical colors (anti-aliasing, JPEG noise) count together.
+        const bucketSize = 24;
+        const buckets = new Map();
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const a = data[i + 3];
+          if (a < 128) continue; // skip transparent pixels
+          const key = [
+            Math.round(r / bucketSize),
+            Math.round(g / bucketSize),
+            Math.round(b / bucketSize),
+          ].join(",");
+          const bucket = buckets.get(key);
+          if (bucket) {
+            bucket.r += r;
+            bucket.g += g;
+            bucket.b += b;
+            bucket.count += 1;
+          } else {
+            buckets.set(key, { r, g, b, count: 1 });
+          }
+        }
+
+        const top = Array.from(buckets.values())
+          .sort((x, y) => y.count - x.count)
+          .slice(0, 8)
+          .map((bucket) => {
+            const r = Math.round(bucket.r / bucket.count);
+            const g = Math.round(bucket.g / bucket.count);
+            const b = Math.round(bucket.b / bucket.count);
+            const hex = `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`.toUpperCase();
+            return { hex, name: nearestColorName(hex) };
+          });
+
+        setExtractedColors(top);
+        setIsExtracting(false);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
 
   return (
     <div
@@ -764,6 +836,54 @@ export default function ColorPalettePicker() {
               />
             ))}
           </div>
+        </div>
+
+        {/* Screenshot color extractor */}
+        <div
+          className="mt-10 rounded-2xl p-4 sm:p-5"
+          style={{ backgroundColor: chrome.surface, border: `1px solid ${chrome.border}` }}
+        >
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h2 className="text-sm font-bold" style={{ color: chrome.text }}>Extract colors from a screenshot</h2>
+              <p className="text-xs mt-0.5" style={{ color: chrome.textSecondary }}>
+                Upload an image of an app or site to see its most common colors as hex codes.
+              </p>
+            </div>
+            <label
+              className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full cursor-pointer flex-shrink-0"
+              style={{ backgroundColor: chrome.accent, color: chrome.accentText }}
+            >
+              <Upload size={14} />
+              Upload screenshot
+              <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="hidden" />
+            </label>
+          </div>
+
+          {isExtracting && (
+            <div className="text-xs mt-4" style={{ color: chrome.textSecondary }}>Analyzing image...</div>
+          )}
+
+          {!isExtracting && extractedColors.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+              {extractedColors.map((c, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 rounded-xl p-2"
+                  style={{ backgroundColor: chrome.bg, border: `1px solid ${chrome.border}` }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-lg flex-shrink-0"
+                    style={{ backgroundColor: c.hex, border: `1px solid ${hexToRgba("#000000", 0.08)}` }}
+                  />
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold truncate" style={{ color: chrome.text }}>{c.name}</div>
+                    <div className="text-xs font-mono" style={{ color: chrome.textSecondary }}>{c.hex}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Palette breakdown */}
