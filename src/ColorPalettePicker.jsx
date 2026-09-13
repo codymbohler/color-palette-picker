@@ -838,54 +838,6 @@ export default function ColorPalettePicker() {
           </div>
         </div>
 
-        {/* Screenshot color extractor */}
-        <div
-          className="mt-10 rounded-2xl p-4 sm:p-5"
-          style={{ backgroundColor: chrome.surface, border: `1px solid ${chrome.border}` }}
-        >
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <h2 className="text-sm font-bold" style={{ color: chrome.text }}>Extract colors from a screenshot</h2>
-              <p className="text-xs mt-0.5" style={{ color: chrome.textSecondary }}>
-                Upload an image of an app or site to see its most common colors as hex codes.
-              </p>
-            </div>
-            <label
-              className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full cursor-pointer flex-shrink-0"
-              style={{ backgroundColor: chrome.accent, color: chrome.accentText }}
-            >
-              <Upload size={14} />
-              Upload screenshot
-              <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="hidden" />
-            </label>
-          </div>
-
-          {isExtracting && (
-            <div className="text-xs mt-4" style={{ color: chrome.textSecondary }}>Analyzing image...</div>
-          )}
-
-          {!isExtracting && extractedColors.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-              {extractedColors.map((c, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 rounded-xl p-2"
-                  style={{ backgroundColor: chrome.bg, border: `1px solid ${chrome.border}` }}
-                >
-                  <div
-                    className="w-8 h-8 rounded-lg flex-shrink-0"
-                    style={{ backgroundColor: c.hex, border: `1px solid ${hexToRgba("#000000", 0.08)}` }}
-                  />
-                  <div className="min-w-0">
-                    <div className="text-xs font-semibold truncate" style={{ color: chrome.text }}>{c.name}</div>
-                    <div className="text-xs font-mono" style={{ color: chrome.textSecondary }}>{c.hex}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Palette breakdown */}
         <div className="mt-10">
           <h2 className="text-lg font-bold mb-4" style={{ color: chrome.text }}>Palette Color Adjustment</h2>
@@ -947,6 +899,54 @@ export default function ColorPalettePicker() {
               );
             })}
           </div>
+        </div>
+
+        {/* Screenshot color extractor */}
+        <div
+          className="mt-10 rounded-2xl p-4 sm:p-5"
+          style={{ backgroundColor: chrome.surface, border: `1px solid ${chrome.border}` }}
+        >
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h2 className="text-sm font-bold" style={{ color: chrome.text }}>Extract colors from a screenshot</h2>
+              <p className="text-xs mt-0.5" style={{ color: chrome.textSecondary }}>
+                Upload an image of an app or site to see its most common colors as hex codes.
+              </p>
+            </div>
+            <label
+              className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full cursor-pointer flex-shrink-0"
+              style={{ backgroundColor: chrome.accent, color: chrome.accentText }}
+            >
+              <Upload size={14} />
+              Upload screenshot
+              <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="hidden" />
+            </label>
+          </div>
+
+          {isExtracting && (
+            <div className="text-xs mt-4" style={{ color: chrome.textSecondary }}>Analyzing image...</div>
+          )}
+
+          {!isExtracting && extractedColors.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+              {extractedColors.map((c, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 rounded-xl p-2"
+                  style={{ backgroundColor: chrome.bg, border: `1px solid ${chrome.border}` }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-lg flex-shrink-0"
+                    style={{ backgroundColor: c.hex, border: `1px solid ${hexToRgba("#000000", 0.08)}` }}
+                  />
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold truncate" style={{ color: chrome.text }}>{c.name}</div>
+                    <div className="text-xs font-mono" style={{ color: chrome.textSecondary }}>{c.hex}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
