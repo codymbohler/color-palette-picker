@@ -14,6 +14,11 @@ import {
   MoreHorizontal,
   Pencil,
   Upload,
+  CircleCheckBig,
+  TriangleAlert,
+  CircleX,
+  Copy,
+  Check,
 } from "lucide-react";
 
 /* ----------------------------------------------------------------
@@ -128,6 +133,28 @@ function relativeLuminance(hex) {
 function contrastText(hex) {
   return relativeLuminance(hex) > 0.45 ? "#16181D" : "#FFFFFF";
 }
+
+function contrastRatio(hexA, hexB) {
+  const lA = relativeLuminance(hexA);
+  const lB = relativeLuminance(hexB);
+  const lighter = Math.max(lA, lB);
+  const darker = Math.min(lA, lB);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function wcagLevel(ratio) {
+  if (ratio >= 7) return "aaa";
+  if (ratio >= 4.5) return "aa";
+  if (ratio >= 3) return "large";
+  return "fail";
+}
+
+const LEVEL_META = {
+  aaa: { label: "AAA", color: "#16A34A", Icon: CircleCheckBig },
+  aa: { label: "AA", color: "#16A34A", Icon: CircleCheckBig },
+  large: { label: "AA Large", color: "#D97706", Icon: TriangleAlert },
+  fail: { label: "Fail", color: "#DC2626", Icon: CircleX },
+};
 
 /* ----------------------------------------------------------------
    Palette harmony generators
@@ -503,6 +530,30 @@ const MOCK_SITES = [
 ];
 
 /* ----------------------------------------------------------------
+   Dev-ready export
+   ---------------------------------------------------------------- */
+
+const EXPORT_FORMATS = [
+  { key: "css", label: "CSS Variables" },
+  { key: "tailwind", label: "Tailwind" },
+  { key: "json", label: "JSON" },
+];
+
+function buildExportString(format, palette) {
+  const entries = ROLE_ORDER.map((k) => [k, palette[k].hex]);
+  if (format === "css") {
+    return `:root {\n${entries.map(([k, v]) => `  --color-${k}: ${v};`).join("\n")}\n}`;
+  }
+  if (format === "tailwind") {
+    return `colors: {\n${entries.map(([k, v]) => `  ${k}: '${v}',`).join("\n")}\n}`;
+  }
+  if (format === "json") {
+    return `{\n${entries.map(([k, v], i) => `  "${k}": "${v}"${i < entries.length - 1 ? "," : ""}`).join("\n")}\n}`;
+  }
+  return "";
+}
+
+/* ----------------------------------------------------------------
    Main app
    ---------------------------------------------------------------- */
 
@@ -521,6 +572,8 @@ export default function ColorPalettePicker() {
   const [overrides, setOverrides] = useState({});
   const [extractedColors, setExtractedColors] = useState([]);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [exportFormat, setExportFormat] = useState("css");
+  const [copied, setCopied] = useState(false);
 
   const activeType = PALETTE_TYPES.find((t) => t.key === typeKey);
   const activeHue = hueByType[typeKey];
@@ -576,6 +629,27 @@ export default function ColorPalettePicker() {
 
   const getPreview = (t) => buildPalette(t.key, hueByType[t.key]);
   const CurrentSite = MOCK_SITES[mockIndex].Component;
+
+  const contrastPairs = [
+    { label: "Text on Background", fgHex: palette.text.hex, bgHex: palette.background.hex },
+    { label: "Text on Surface", fgHex: palette.text.hex, bgHex: palette.surface.hex },
+    { label: "Primary button text", fgHex: contrastText(palette.primary.hex), bgHex: palette.primary.hex },
+    { label: "Secondary button text", fgHex: contrastText(palette.secondary.hex), bgHex: palette.secondary.hex },
+    { label: "Accent button text", fgHex: contrastText(palette.accent.hex), bgHex: palette.accent.hex },
+  ];
+
+  function handleCopyExport() {
+    const text = buildExportString(exportFormat, palette);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(text)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        })
+        .catch(() => {});
+    }
+  }
 
   function handleScreenshotUpload(e) {
     const file = e.target.files && e.target.files[0];
@@ -672,8 +746,191 @@ export default function ColorPalettePicker() {
           </div>
         </div>
 
+        {/* Palette breakdown */}
+        <div className="mt-10">
+          <h2 className="text-lg font-bold mb-4" style={{ color: chrome.text }}>Palette Color Adjustment</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {BREAKDOWN_ROLE_ORDER.map((roleKey) => {
+              const info = ROLE_INFO[roleKey];
+              const c = palette[roleKey];
+              return (
+                <div
+                  key={roleKey}
+                  className="rounded-2xl p-4 flex items-center gap-4"
+                  style={{ backgroundColor: chrome.surface, border: `1px solid ${chrome.border}` }}
+                >
+                  <div
+                    className="relative w-12 h-12 rounded-xl flex-shrink-0 group transition-transform duration-150 hover:scale-105"
+                    style={{ backgroundColor: c.hex, border: `1px solid ${hexToRgba("#000000", 0.08)}` }}
+                  >
+                    <input
+                      type="color"
+                      value={c.hex}
+                      onChange={(e) =>
+                        setOverrides((prev) => ({ ...prev, [roleKey]: e.target.value.toUpperCase() }))
+                      }
+                      aria-label={`Change the ${info.label} color`}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div
+                      className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none"
+                      style={{ backgroundColor: chrome.surface, border: `1px solid ${chrome.border}` }}
+                    >
+                      <Pencil size={10} style={{ color: chrome.text }} />
+                    </div>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="font-semibold text-sm" style={{ color: chrome.text }}>{c.name}</span>
+                      <span className="font-mono text-xs" style={{ color: chrome.textSecondary }}>{c.hex}</span>
+                      {overrides[roleKey] && (
+                        <button
+                          onClick={() =>
+                            setOverrides((prev) => {
+                              const next = { ...prev };
+                              delete next[roleKey];
+                              return next;
+                            })
+                          }
+                          className="text-xs underline flex-shrink-0"
+                          style={{ color: chrome.textSecondary }}
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                    <div className="text-xs mt-0.5" style={{ color: chrome.textSecondary }}>
+                      {info.label}: {info.usage}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Mock website preview */}
+        <div className="mt-10">
+          <div className="text-center text-xs font-medium mb-3" style={{ color: chrome.textSecondary }}>
+            Palette Preview
+          </div>
+          <div className="flex items-center justify-center gap-3 sm:gap-5">
+            <ArrowButton
+              Icon={ChevronLeft}
+              chrome={chrome}
+              label="Previous example"
+              onClick={() => setMockIndex((mockIndex - 1 + MOCK_SITES.length) % MOCK_SITES.length)}
+            />
+            <BrowserFrame chrome={chrome} siteLabel={MOCK_SITES[mockIndex].label}>
+              <CurrentSite palette={palette} />
+            </BrowserFrame>
+            <ArrowButton
+              Icon={ChevronRight}
+              chrome={chrome}
+              label="Next example"
+              onClick={() => setMockIndex((mockIndex + 1) % MOCK_SITES.length)}
+            />
+          </div>
+          <div className="text-center mt-3 text-xs font-medium" style={{ color: chrome.textSecondary }}>
+            {MOCK_SITES[mockIndex].name}
+          </div>
+          <div className="flex items-center justify-center gap-2 mt-3">
+            {MOCK_SITES.map((site, i) => (
+              <button
+                key={site.label}
+                onClick={() => setMockIndex(i)}
+                aria-label={`Show ${site.name} example`}
+                aria-current={i === mockIndex}
+                className="w-2 h-2 rounded-full transition-colors duration-150"
+                style={{ backgroundColor: i === mockIndex ? chrome.accent : chrome.border }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Contrast / accessibility checker */}
+        <div className="mt-10">
+          <h2 className="text-lg font-bold mb-1" style={{ color: chrome.text }}>Contrast &amp; Accessibility</h2>
+          <p className="text-xs mb-4" style={{ color: chrome.textSecondary }}>
+            WCAG contrast ratios for the role pairings used across the mock site.
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {contrastPairs.map((pair) => {
+              const ratio = contrastRatio(pair.fgHex, pair.bgHex);
+              const level = wcagLevel(ratio);
+              const meta = LEVEL_META[level];
+              const LevelIcon = meta.Icon;
+              return (
+                <div
+                  key={pair.label}
+                  className="rounded-2xl p-4 flex items-center gap-4"
+                  style={{ backgroundColor: chrome.surface, border: `1px solid ${chrome.border}` }}
+                >
+                  <div
+                    className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center text-sm font-bold"
+                    style={{ backgroundColor: pair.bgHex, color: pair.fgHex, border: `1px solid ${hexToRgba("#000000", 0.08)}` }}
+                  >
+                    Aa
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold" style={{ color: chrome.text }}>{pair.label}</div>
+                    <div className="text-xs font-mono mt-0.5" style={{ color: chrome.textSecondary }}>{ratio.toFixed(2)}:1</div>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0" style={{ color: meta.color }}>
+                    <LevelIcon size={14} />
+                    <span className="text-xs font-bold">{meta.label}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Dev-ready export */}
+        <div
+          className="mt-10 rounded-2xl p-4 sm:p-5"
+          style={{ backgroundColor: chrome.surface, border: `1px solid ${chrome.border}` }}
+        >
+          <h2 className="text-lg font-bold mb-1" style={{ color: chrome.text }}>Dev-Ready Export</h2>
+          <p className="text-xs mb-4" style={{ color: chrome.textSecondary }}>
+            Copy the current palette straight into your codebase.
+          </p>
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            {EXPORT_FORMATS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setExportFormat(f.key)}
+                className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors duration-150"
+                style={{
+                  backgroundColor: exportFormat === f.key ? chrome.accent : chrome.bg,
+                  color: exportFormat === f.key ? chrome.accentText : chrome.text,
+                  border: `1px solid ${exportFormat === f.key ? chrome.accent : chrome.border}`,
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div className="relative">
+            <pre
+              className="text-xs font-mono rounded-xl p-4 pr-24 overflow-x-auto"
+              style={{ backgroundColor: chrome.bg, color: chrome.text, border: `1px solid ${chrome.border}` }}
+            >
+              {buildExportString(exportFormat, palette)}
+            </pre>
+            <button
+              onClick={handleCopyExport}
+              className="absolute top-3 right-3 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
+              style={{ backgroundColor: chrome.accent, color: chrome.accentText }}
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+        </div>
+
         {/* Palette type buttons */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-10">
           {PALETTE_TYPES.map((t) => (
             <TypeButton
               key={t.key}
@@ -798,108 +1055,6 @@ export default function ColorPalettePicker() {
             border-radius: 9999px;
           }
         `}</style>
-
-        {/* Mock website preview */}
-        <div className="mt-10">
-          <div className="text-center text-xs font-medium mb-3" style={{ color: chrome.textSecondary }}>
-            Palette Preview
-          </div>
-          <div className="flex items-center justify-center gap-3 sm:gap-5">
-            <ArrowButton
-              Icon={ChevronLeft}
-              chrome={chrome}
-              label="Previous example"
-              onClick={() => setMockIndex((mockIndex - 1 + MOCK_SITES.length) % MOCK_SITES.length)}
-            />
-            <BrowserFrame chrome={chrome} siteLabel={MOCK_SITES[mockIndex].label}>
-              <CurrentSite palette={palette} />
-            </BrowserFrame>
-            <ArrowButton
-              Icon={ChevronRight}
-              chrome={chrome}
-              label="Next example"
-              onClick={() => setMockIndex((mockIndex + 1) % MOCK_SITES.length)}
-            />
-          </div>
-          <div className="text-center mt-3 text-xs font-medium" style={{ color: chrome.textSecondary }}>
-            {MOCK_SITES[mockIndex].name}
-          </div>
-          <div className="flex items-center justify-center gap-2 mt-3">
-            {MOCK_SITES.map((site, i) => (
-              <button
-                key={site.label}
-                onClick={() => setMockIndex(i)}
-                aria-label={`Show ${site.name} example`}
-                aria-current={i === mockIndex}
-                className="w-2 h-2 rounded-full transition-colors duration-150"
-                style={{ backgroundColor: i === mockIndex ? chrome.accent : chrome.border }}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Palette breakdown */}
-        <div className="mt-10">
-          <h2 className="text-lg font-bold mb-4" style={{ color: chrome.text }}>Palette Color Adjustment</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {BREAKDOWN_ROLE_ORDER.map((roleKey) => {
-              const info = ROLE_INFO[roleKey];
-              const c = palette[roleKey];
-              return (
-                <div
-                  key={roleKey}
-                  className="rounded-2xl p-4 flex items-center gap-4"
-                  style={{ backgroundColor: chrome.surface, border: `1px solid ${chrome.border}` }}
-                >
-                  <div
-                    className="relative w-12 h-12 rounded-xl flex-shrink-0 group transition-transform duration-150 hover:scale-105"
-                    style={{ backgroundColor: c.hex, border: `1px solid ${hexToRgba("#000000", 0.08)}` }}
-                  >
-                    <input
-                      type="color"
-                      value={c.hex}
-                      onChange={(e) =>
-                        setOverrides((prev) => ({ ...prev, [roleKey]: e.target.value.toUpperCase() }))
-                      }
-                      aria-label={`Change the ${info.label} color`}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <div
-                      className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none"
-                      style={{ backgroundColor: chrome.surface, border: `1px solid ${chrome.border}` }}
-                    >
-                      <Pencil size={10} style={{ color: chrome.text }} />
-                    </div>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className="font-semibold text-sm" style={{ color: chrome.text }}>{c.name}</span>
-                      <span className="font-mono text-xs" style={{ color: chrome.textSecondary }}>{c.hex}</span>
-                      {overrides[roleKey] && (
-                        <button
-                          onClick={() =>
-                            setOverrides((prev) => {
-                              const next = { ...prev };
-                              delete next[roleKey];
-                              return next;
-                            })
-                          }
-                          className="text-xs underline flex-shrink-0"
-                          style={{ color: chrome.textSecondary }}
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
-                    <div className="text-xs mt-0.5" style={{ color: chrome.textSecondary }}>
-                      {info.label}: {info.usage}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Screenshot color extractor */}
         <div
